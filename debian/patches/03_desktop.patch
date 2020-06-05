@@ -1,0 +1,14 @@
+diff -ur -x .svn -x .git -x .bzr -x CVS -x '*~' -x '.#*' nether_0.53-1292/build/linux/nether.desktop nether/build/linux/nether.desktop
+--- nether_0.53-1292/build/linux/nether.desktop	2014-11-14 14:22:15.697012806 +0200
++++ nether/build/linux/nether.desktop	2015-04-21 12:03:05.162282334 +0300
+@@ -2,8 +2,8 @@
+ Encoding=UTF-8
+ Name=Nether Earth
+ Comment=Very first Real Time Strategy game ever.
+-Exec=nether
+-Icon=nether.png
++Exec=/usr/games/nether
++Icon=nether
+ Terminal=false
+ Type=Application
+ Categories=Application;Game;ArcadeGame;

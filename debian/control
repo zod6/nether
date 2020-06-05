@@ -1,0 +1,104 @@
+Source: nether
+Section: user/games
+Priority: extra 
+Maintainer: Siim Salonen <siim.salonen@gmail.com>
+Build-Depends: debhelper (>= 5), quilt, libglshim-dev [armel], libglushim-dev[armel], libgl1-mesa-dev [i386], libglu1-mesa-dev [i386], freeglut3-dev, libsdl1.2-dev, libsdl-mixer1.2-dev | libsdl-mixer1.2.8-dev, libsdl-gles1.2-dev
+Standards-Version: 3.7.2
+Homepage: https://github.com/santiontanon/nether-earth-pc
+
+Package: nether
+Architecture: armel
+Depends: ${misc:Depends}, libsdl-mixer1.2, libsdl1.2, freeglut3, libglshim, libglushim, libsdl-gles1.2-1
+Description: Remake of the very first real-time strategy game
+ Design your own robots, destroy enemy robots, gather
+ resources and conquor enemy warbases in this classic
+ first ever RTS game. 
+XB-Maemo-Display-Name: Nether Earth
+XB-Maemo-Icon-26:
+ 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
+ AAAAAElFTkSuQmCC
+ ====

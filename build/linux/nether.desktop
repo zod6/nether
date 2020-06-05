@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Nether Earth
+Comment=Very first Real Time Strategy game ever.
+Exec=nether
+Icon=nether.png
+Terminal=false
+Type=Application
+Categories=Application;Game;ArcadeGame;
+StartupNotify=false

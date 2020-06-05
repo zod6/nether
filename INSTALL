@@ -1,0 +1,16 @@
+Dependencies:
+ SDL
+ SDL_mixer
+ GL
+ GLU
+ glut
+
+On Ubuntu you can get all necessary packages by typing:
+ sudo apt-get install g++ make libsdl-mixer1.2-dev libglut3-dev
+
+Copy the Makefile in the build/linux directory to the top directory.
+(The one where there's all the subdirs, including 'src')
+From there you can 'make' and 'make install'.
+
+For cross-compiling on debian (mingw package):
+make CXX=i686-w64-mingw32-g++ CFLAGS="-g3 -O3 `/usr/i686-w64-mingw32/SDL-1.2.15/bin/sdl-config --cflags` -I/usr/i686-w64-mingw32/include/SDL -Wall -D_WIN32" LDFLAGS="`/usr/i686-w64-mingw32/SDL-1.2.15/bin/sdl-config --libs` -lopengl32 -lfreeglut -lglu32 -Wl,--subsystem,windows /usr/i686-w64-mingw32/runtime/SDL_mixer.dll" EXE=nether.exe

@@ -1,0 +1,20 @@
+keeps floating.
+robots stuck. debug!
+
+onfocus refresh!
+(maemo) onfocusloss pause
+
+
+weird 3-4sec boost (22fps->50fps) when switching copypixels on->off. When commenting out glCopyPixels() from gameredraw() then no more boost.
+// 1920x1080, fullscreen, max zoom. in windowed mode allways 50fps.
+
+
+shadow off
+(lightning[0]=-2000) optional.
+lightning[1]=4000; hetkel 0. originaal perses. vaja mudelile teisest kohast //
+2000
+valgus
+
+maja ja toigaste varjud oleks nagu teise valgustusega
+
+buildings had constant shadows, flags and pieces not!

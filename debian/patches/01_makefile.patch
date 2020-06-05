@@ -1,0 +1,19 @@
+--- nether/Makefile	2015-07-24 11:34:33.862446901 +0300
++++ nether-0.53-1292/Makefile	2015-09-22 15:54:42.943046180 +0300
+@@ -6,6 +6,7 @@
+ GAMEDIR = $(PREFIX)/games
+ STARTUP = $(GAMEDIR)/$(EXE)
+ BINDIR = $(PREFIX)/share/games/$(EXE)
++DATADIR = $(BINDIR)
+ ICNDIR = $(PREFIX)/share/pixmaps
+ APPDIR = $(PREFIX)/share/applications
+ 
+@@ -54,7 +55,7 @@
+ 	@$(ECHO) " o Creating startup script $(STARTUP)"
+ 	@$(MD) "$(GAMEDIR)"
+ 	@$(ECHO) "#!/bin/sh" >"$(STARTUP)"
+-	@$(ECHO) "cd \"$(BINDIR)\"; ./$(EXE); cd -" >>"$(STARTUP)"
++	@$(ECHO) "cd \"$(DATADIR)\"; ./$(EXE); cd -" >>"$(STARTUP)"
+ 	@$(CHMOD) 755 "$(STARTUP)"
+ 	@$(ECHO) " o Creating application menu entry"
+ 	@$(MD) "$(ICNDIR)"

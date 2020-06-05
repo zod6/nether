@@ -1,0 +1,561 @@
+Only in nether-0.53-1292/src/: 3dobject-ase.o
+Only in nether-0.53-1292/src/: 3dobject.o
+Only in nether-0.53-1292/src/: bitmap.o
+Only in nether-0.53-1292/src/: bullet.o
+Only in nether-0.53-1292/src/: cmc.o
+Only in nether-0.53-1292/src/: construction.o
+Only in nether-0.53-1292/src/: debug.o
+Only in nether-0.53-1292/src/: enemy_ai.o
+Only in nether-0.53-1292/src/: filehandling.o
+Only in nether-0.53-1292/src/: glprintf.o
+diff -ur -x .svn -x .git -x .bzr -x CVS -x '*~' -x '.#*' nether.old/src/main.cpp nether-0.53-1292/src/main.cpp
+--- nether.old/src/main.cpp	2015-09-23 18:22:35.343614301 +0300
++++ nether-0.53-1292/src/main.cpp	2015-09-24 14:30:14.788046385 +0300
+@@ -42,7 +42,7 @@
+ int up_key=SDLK_UP,down_key=SDLK_DOWN,left_key=SDLK_LEFT,right_key=SDLK_RIGHT,fire_key=SDLK_SPACE,pause_key=SDLK_ESCAPE;
+ float default_zoom=1.6;
+ bool show_fps=false;
+-bool cfg_mouse=false;
++int cfg_mouse=1;
+ bool cfg_copypixels=true;
+ 
+ bool up_key_pressed=false,down_key_pressed=false,left_key_pressed=false,right_key_pressed=false,fire_key_pressed=false,pause_key_pressed=false,zoomin_key_pressed=false,zoomout_key_pressed=false;
+@@ -50,7 +50,7 @@
+ int level=1;
+ int mainmenu_status=0;
+ int mainmenu_substatus=0;
+-bool fullscreen=false;
++bool fullscreen=true;
+ bool show_radar=true;
+ char mapname[128]="original.map";
+ C3DObject *nethertittle=0;
+@@ -77,6 +77,7 @@
+ void save_configuration(void);
+ void load_configuration(void);
+ bool init_video(void);
++unsigned char ProximitySensorCovered(void);
+ 
+ /*						AUXILIAR FUNCTION DEFINITION:							*/ 
+ 
+@@ -114,7 +115,7 @@
+ 
+ 	if(init_video()) return 0;
+ 
+-	if( access("nether.bmp", F_OK|R_OK) != -1 ){
++	if(0 && access("nether.bmp", F_OK|R_OK) != -1 ){
+ 		image = SDL_LoadBMP("nether.bmp");
+ 		colorkey = SDL_MapRGB(image->format, 255, 255, 255);
+ 		SDL_SetColorKey(image, SDL_SRCCOLORKEY, colorkey); 
+@@ -185,6 +186,7 @@
+ 	int time,fps_init_time;
+ 	SDL_Event event;
+     bool quit = false;
++	bool idle = false;
+ 
+ 	dbglvl = WARNING;
+ 
+@@ -209,17 +211,25 @@
+ 			fps_init_time=time;
+ 		}
+ 
++		/* 
++		 * seems that this doesnt affect fps
++		 * if commented out, ship lifts only on mouse press
++		 */
++		if(cfg_mouse>1){
++			if(ProximitySensorCovered()) mouse_right_pressed=true;
++			else mouse_right_pressed=false;
++		}
++
+ 		while( SDL_PollEvent( &event ) ) {
+ 			switch( event.type ) {
+-				case SDL_VIDEORESIZE:
+-					SCREEN_X=event.resize.w;
+-					SCREEN_Y=event.resize.h;
+-					quit = init_video();
+ 				case SDL_VIDEOEXPOSE:
+ 					if(game) game->set_redraw_all();
+ 					break;
+ 				case SDL_ACTIVEEVENT:
+-					if( game && ( event.active.state&SDL_APPACTIVE || event.active.state & SDL_APPINPUTFOCUS) && event.active.gain) game->set_redraw_all();
++					if( event.active.state & SDL_APPACTIVE || event.active.state & SDL_APPINPUTFOCUS || event.active.state & SDL_APPMOUSEFOCUS ){
++						idle=(event.active.gain == 0);
++						if(game && event.active.gain) game->set_redraw_all();
++					}
+ 					break;
+ 
+ 				case SDL_MOUSEBUTTONDOWN:
+@@ -227,7 +237,7 @@
+ 					if (game && event.button.button == SDL_BUTTON_WHEELDOWN) game->zoomout();
+ 					if (game && event.button.button == SDL_BUTTON_WHEELUP) game->zoomin();
+ 
+-					if (game && event.button.button == SDL_BUTTON_RIGHT){
++					if (game && ( (event.button.button == SDL_BUTTON_LEFT && ((SDL_GetModState() & KMOD_MODE) || ProximitySensorCovered()) ) || event.button.button == SDL_BUTTON_RIGHT ) ) {
+ 					   mouse_right_pressed=true;
+ 					   if(game->is_act_menu()) game->act_menu_action(0, event.button.x, event.button.y); // only for distance selection
+ 					}
+@@ -269,6 +279,7 @@
+ 						down_key_pressed=false;
+ 						left_key_pressed=false;
+ 						right_key_pressed=false;
++						mouse_right_pressed=false;
+ 					}
+ 
+                     if (event.button.button == SDL_BUTTON_RIGHT) mouse_right_pressed=false;
+@@ -276,19 +287,20 @@
+ 
+ 					/* Keyboard event */
+ 				case SDL_KEYDOWN:
+-					if(event.key.keysym.sym==SDLK_F1){
++					if(game){
++					if(0 && event.key.keysym.sym==SDLK_q){
+ 						change_resolution();
+ 						quit = init_video();
+ 						snprintf(message, 20, "RES: %4dx%-4d", SCREEN_X, SCREEN_Y);
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F2){
++						message_timer=3000;
++					} else if(0 && event.key.keysym.sym==SDLK_w){
+ 						if (COLOUR_DEPTH== 8){ COLOUR_DEPTH=16; strcpy(message, "COLOR DEPTH: 16bit"); }
+ 						else if (COLOUR_DEPTH==16){ COLOUR_DEPTH=24; strcpy(message, "COLOR DEPTH: 24bit"); }
+ 						else if (COLOUR_DEPTH==24){ COLOUR_DEPTH=32; strcpy(message, "COLOR DEPTH: 32bit"); }
+ 						else if (COLOUR_DEPTH==32){ COLOUR_DEPTH=8 ; strcpy(message, "COLOR DEPTH: 8bit"); }
+ 						quit = init_video();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F3){
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_e){
+ 						shadows++;
+ 						if (shadows>=3) shadows=0;
+ 						if (shadows==0) strcpy(message, "SHADOWS: OFF");
+@@ -296,8 +308,8 @@
+ 						if (shadows==2) strcpy(message, "SHADOWS: ON - VERT");
+ 						if(game) game->set_shadows();
+ 						save_configuration();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F4){
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_r){
+ 						detaillevel++;
+ 						if (detaillevel>=5) detaillevel=0;
+ 						if (detaillevel==0) strcpy(message, "DETAIL: LOWEST");
+@@ -306,45 +318,48 @@
+ 						if (detaillevel==3) strcpy(message, "DETAIL: HIGH");
+ 						if (detaillevel==4) strcpy(message, "DETAIL: HIGHEST");
+ 						save_configuration();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F5){
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_t){
+ 						if (sound){ sound=false; strcpy(message, "SOUND: OFF"); }
+ 						else { sound=true; strcpy(message, "SOUND: ON"); }
+ 						save_configuration();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F6){
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_y){
+ 						if (show_radar){ show_radar=false; strcpy(message, "RADAR: OFF"); }
+ 						else { show_radar=true; strcpy(message, "RADAR: ON"); }
+ 						save_configuration();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F7){
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_u){
+ 						if (show_fps){ show_fps=false; strcpy(message, "SHOW FPS: OFF"); }
+ 						else { show_fps=true; strcpy(message, "SHOW FPS: ON"); }
+ 						save_configuration();
+-						message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F8){
+-						if (cfg_mouse) {
+-							cfg_mouse=false;
++						message_timer=3000;
++					} else if(event.key.keysym.sym==SDLK_i){
++						if (cfg_mouse==2) {
++							cfg_mouse=0;
+ 							strcpy(message, "MOUSE: OFF");
+-							SDL_ShowCursor(SDL_DISABLE);
++						} else if(!cfg_mouse){
++							cfg_mouse=1;
++							strcpy(message, "MOUSE: MODE1");
+ 						} else {
+-							cfg_mouse=true;
+-							strcpy(message, "MOUSE: ON");
+-							SDL_ShowCursor(SDL_ENABLE);
++							cfg_mouse=2;
++							strcpy(message, "MOUSE: MODE2");
+ 						}
+ 						save_configuration();
+-						message_timer=2000;
+-                    } else if(event.key.keysym.sym==SDLK_F9){
++						message_timer=3000;
++                    } else if(event.key.keysym.sym==SDLK_o){
+                         if (cfg_copypixels){ cfg_copypixels=false; strcpy(message, "ANTI-FLICKERING: OFF"); }
+                         else { cfg_copypixels=true; strcpy(message, "ANTI-FLICKERING: ON"); }
+                         save_configuration();
+-                        message_timer=2000;
+-					} else if(event.key.keysym.sym==SDLK_F12){
++                        message_timer=3000;
++					}
++					}
++					if(event.key.keysym.sym==SDLK_F12){
+ 						quit = true;
+-					} else if(event.key.keysym.sym==SDLK_RETURN){
++					} else if(event.key.keysym.sym==SDLK_RETURN || event.key.keysym.sym==SDLK_KP_ENTER){
+ 						SDLMod modifiers;
+ 						modifiers=SDL_GetModState();
+-						if ((modifiers&KMOD_ALT)!=0) {
++						if (1||(modifiers&KMOD_ALT)!=0) {
+ 							fullscreen = (fullscreen ? false : true);
+ 							quit = init_video();
+ 						}
+@@ -415,32 +430,34 @@
+ 
+ 		} /* while pollevent() */
+ 
+-		if (game) {
+-			if (game->get_game_state()==STATE_PLAYING) {
+-				if (!game->gamecycle()) end_game();
+-			}
+-		} else { // mainmenu
+-			int val=mainmenu_timers(); // title zoomin/zoomout
+-			if (val==1) { // new game
+-				char tmp[256];
+-				sprintf(tmp,"maps/%s",mapname);
+-				game=new NETHER(tmp);
++		if(!idle){
++			if (game) {
++				if (game->get_game_state()==STATE_PLAYING) {
++					if (!game->gamecycle()) end_game();
++				}
++			} else { // mainmenu
++				int val=mainmenu_timers(); // title zoomin/zoomout
++				if (val==1) { // new game
++					char tmp[256];
++					sprintf(tmp,"maps/%s",mapname);
++					game=new NETHER(tmp);
++				}
++				if (val==2) quit=true;
+ 			}
+-			if (val==2) quit=true;
+-		}
+ 
+-		if (game!=0) {
+-			game->gameredraw();
+-		} else {
+-			mainmenu_draw();
+-		}
++			if (game!=0) {
++				game->gameredraw();
++			} else {
++				mainmenu_draw();
++			}
+ 
+-		time_diff=SDL_GetTicks()-time;
+-		if(time_diff < REDRAWING_PERIOD){
+-			SDL_Delay(REDRAWING_PERIOD-time_diff);
+-			time_diff=REDRAWING_PERIOD;
+-		}
+-		if(message_timer>0) message_timer-=time_diff; // hidden options, F4-F11
++			time_diff=SDL_GetTicks()-time;
++			if(time_diff < REDRAWING_PERIOD){
++				SDL_Delay(REDRAWING_PERIOD-time_diff);
++				time_diff=REDRAWING_PERIOD;
++			}
++			if(message_timer>0) message_timer-=time_diff; // hidden options, F4-F11
++		} else SDL_WaitEvent(NULL);
+ 	} /* while */ 
+ 
+ 	end_game();
+@@ -460,17 +477,12 @@
+ //	glutInitWindowSize(SCREEN_X,SCREEN_Y);
+ 
+ 		if(fullscreen==true){
+-#ifdef __LINUX__
+-			// X fullscreen is buggy. use native resolution
+-			SCREEN_X=native_x;
+-			SCREEN_Y=native_y;
+-#else
+-			if(!SDL_VideoModeOK(SCREEN_X, SCREEN_Y, COLOUR_DEPTH, SDL_OPENGL|SDL_FULLSCREEN|SDL_HWSURFACE)){
+-				SCREEN_X=640;
+-				SCREEN_Y=480;
+-			}
+-#endif
+-		}
++			SCREEN_X=800;
++			SCREEN_Y=480;
++		} else {
++			SCREEN_X=800;
++			SCREEN_Y=424;
++		} 
+ 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
+ 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
+ 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
+@@ -479,8 +491,7 @@
+ 		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,1);
+ 
+ 		if( ! (screen_sfc = SDL_SetVideoMode(SCREEN_X, SCREEN_Y, COLOUR_DEPTH, SDL_OPENGL|SDL_RESIZABLE|(fullscreen ? SDL_FULLSCREEN : 0))) ) return true;
+-		if(cfg_mouse) SDL_ShowCursor(SDL_ENABLE);
+-		else SDL_ShowCursor(SDL_DISABLE);
++		SDL_ShowCursor(SDL_DISABLE);
+ 		if (game!=0) game->loadobjects();
+ 
+ 	/* save after successful init, resolution change, etc */
+@@ -514,3 +525,15 @@
+ 	}
+ }
+ 
++unsigned char ProximitySensorCovered(){
++	char c[7];
++	FILE *file;  /* declare a FILE pointer  */
++	file = fopen("/sys/devices/platform/gpio-switch/proximity/state", "r");
++	if(file==NULL) return 0;
++	else {
++		fgets(c, 7, file);
++		fclose(file);
++		return strcmp(c, "closed") == 0;
++	}
++}
++
+diff -ur -x .svn -x .git -x .bzr -x CVS -x '*~' -x '.#*' nether.old/src/mainmenu.cpp nether-0.53-1292/src/mainmenu.cpp
+--- nether.old/src/mainmenu.cpp	2015-09-23 13:35:45.939511679 +0300
++++ nether-0.53-1292/src/mainmenu.cpp	2015-09-24 14:34:52.112048039 +0300
+@@ -59,7 +59,7 @@
+ extern int up_key,down_key,left_key,right_key,fire_key,pause_key;
+ extern float default_zoom;
+ extern bool show_fps;
+-extern bool cfg_mouse;
++extern int cfg_mouse;
+ extern bool cfg_copypixels;
+ 
+ 
+@@ -85,32 +85,32 @@
+ 
+ //		printf("%f, %f (%f: %f (%f), %f (%f))\n", x_norm, y_norm, ratio, x_norm/ratio, (1-x_norm)/ratio, y_norm/ratio, (1-y_norm)/ratio);
+ 
+-		if(mainmenu_status==9) key=SDLK_1; // help
++		if(mainmenu_status==9) key=SDLK_q; // help
+ 		else if(x_norm < (-0.43*ratio+0.5) || x_norm > (1 - (-0.43*ratio+0.5))) return 0;
+ 		
+ 		float step=0.060818;
+ 		if(mainmenu_status==1){ // main menu
+ 			float start=0.615;
+-			if(y_norm > (start+0*step) && y_norm < (start+1*step)) key=SDLK_1;
+-			if(y_norm > (start+1*step) && y_norm < (start+2*step)) key=SDLK_2;
+-			if(y_norm > (start+2*step) && y_norm < (start+3*step)) key=SDLK_3;
+-			if(y_norm > (start+3*step) && y_norm < (start+4*step)) key=SDLK_4;
+-			if(y_norm > (start+4*step) && y_norm < (start+5*step)) key=SDLK_5;
+-			if(y_norm > (start+5*step) && y_norm < (start+6*step)) key=SDLK_0;
++			if(y_norm > (start+0*step) && y_norm < (start+1*step)) key=SDLK_q;
++			if(y_norm > (start+1*step) && y_norm < (start+2*step)) key=SDLK_w;
++			if(y_norm > (start+2*step) && y_norm < (start+3*step)) key=SDLK_e;
++			if(y_norm > (start+3*step) && y_norm < (start+4*step)) key=SDLK_r;
++			if(y_norm > (start+4*step) && y_norm < (start+5*step)) key=SDLK_t;
++			if(y_norm > (start+5*step) && y_norm < (start+6*step)) key=SDLK_p;
+ 	} else if(mainmenu_status==3){ // options
+ 			float start=0.140;
+-			if(y_norm > (start+0*step) && y_norm < (start+1*step)) key=SDLK_1;
+-			if(y_norm > (start+1*step) && y_norm < (start+2*step)) key=SDLK_2;
+-			if(y_norm > (start+2*step) && y_norm < (start+3*step)) key=SDLK_3;
+-			if(y_norm > (start+3*step) && y_norm < (start+4*step)) key=SDLK_4;
+-			if(y_norm > (start+4*step) && y_norm < (start+5*step)) key=SDLK_5;
+-			if(y_norm > (start+5*step) && y_norm < (start+6*step)) key=SDLK_6;
+-			if(y_norm > (start+6*step) && y_norm < (start+7*step)) key=SDLK_7;
+-			if(y_norm > (start+7*step) && y_norm < (start+8*step)) key=SDLK_8;
+-			if(y_norm > (start+8*step) && y_norm < (start+9*step)) key=SDLK_9;
++			if(y_norm > (start+0*step) && y_norm < (start+1*step)) key=SDLK_q;
++			if(y_norm > (start+1*step) && y_norm < (start+2*step)) key=SDLK_w;
++			if(y_norm > (start+2*step) && y_norm < (start+3*step)) key=SDLK_e;
++			if(y_norm > (start+3*step) && y_norm < (start+4*step)) key=SDLK_r;
++			if(y_norm > (start+4*step) && y_norm < (start+5*step)) key=SDLK_t;
++			if(y_norm > (start+5*step) && y_norm < (start+6*step)) key=SDLK_y;
++			if(y_norm > (start+6*step) && y_norm < (start+7*step)) key=SDLK_u;
++			if(y_norm > (start+7*step) && y_norm < (start+8*step)) key=SDLK_i;
++			if(y_norm > (start+8*step) && y_norm < (start+9*step)) key=SDLK_o;
+ 			if(y_norm > (start+9*step) && y_norm < (start+10*step)) key=SDLK_m;
+ 			if(y_norm > (start+10*step) && y_norm < (start+11*step)) key=SDLK_a;
+-			if(y_norm > (start+11*step) && y_norm < (start+12*step)) key=SDLK_0;
++			if(y_norm > (start+11*step) && y_norm < (start+12*step)) key=SDLK_p;
+ 		}
+ 	}
+ 
+@@ -118,23 +118,23 @@
+ 
+ 	switch(mainmenu_status) {
+ 	case 1:
+-		if (key==SDLK_0) { // exit game
++		if (key==SDLK_p) { // exit game
+ 			mainmenu_status=5;
+ 			mainmenu_substatus=0;
+ 		}
+-		if (key==fire_key || key==SDLK_1) { // new game
++		if (key==fire_key || key==SDLK_q) { // new game
+ 			mainmenu_status=4;
+ 			mainmenu_substatus=0;
+ 		}
+-		if (key==SDLK_2) { // redef. keyboard
++		if (key==SDLK_w) { // redef. keyboard
+ 			mainmenu_status=6;
+ 			mainmenu_substatus=0;
+ 		}
+-		if (key==SDLK_3) { // options. animation first
++		if (key==SDLK_e) { // options. animation first
+ 			mainmenu_status=2;
+ 			mainmenu_substatus=0;
+ 		}
+-		if (key==SDLK_4) {
++		if (key==SDLK_r) {
+ 			/* Change the MAP: */ 
+ 			if (mapnames.EmptyP()) {
+ 				/* Fill the mapnames list: */ 
+@@ -198,17 +198,17 @@
+ 
+ 			save_configuration();
+ 		} /* if */ 
+-		if (key==SDLK_5) { // help. animation first
++		if (key==SDLK_t) { // help. animation first
+ 			mainmenu_status=8;
+ 			mainmenu_substatus=0;
+ 		}
+ 		break;
+ 	case 3:
+-		if (key==SDLK_1) { /* change resolution */
++		if (0 && key==SDLK_q) { /* change resolution */
+ 			change_resolution();
+ 			return 1;
+ 		}
+-		if (key==SDLK_2) {
++		if (key==SDLK_w) {
+ 			switch(COLOUR_DEPTH) {
+ 			case 8: COLOUR_DEPTH=16; break;
+ 			case 16: COLOUR_DEPTH=24; break;
+@@ -218,47 +218,48 @@
+ 			} /* switch */ 
+ 			return 1;
+ 		}
+-		if (key==SDLK_3) {
++		if (key==SDLK_e) {
+ 			fullscreen = (fullscreen == false);
+ 			return 1;
+ 		}
+-		if (key==SDLK_4) {
++		if (key==SDLK_r) {
+ 			shadows++;
+ 			if (shadows>=3) shadows=0;
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_5) {
++		if (key==SDLK_t) {
+ 			detaillevel++;
+ 			if (detaillevel>=5) detaillevel=0;
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_6) {
++		if (key==SDLK_y) {
+ 			sound = (sound == false);
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_7) {
++		if (key==SDLK_u) {
+ 			level++;
+ 			if (level>=4) level=0;
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_8) {
++		if (key==SDLK_i) {
+ 			show_radar = (show_radar == false);
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_9) {
++		if (key==SDLK_o) {
+ 			show_fps = (show_fps == false);
+ 			save_configuration();
+ 		}
+ 		if (key==SDLK_m) {
+-			cfg_mouse = (cfg_mouse == false);
+-			SDL_ShowCursor( (cfg_mouse?SDL_ENABLE:SDL_DISABLE) );
++			if(!cfg_mouse) cfg_mouse=1;
++			else if(cfg_mouse==1) cfg_mouse=2;
++			else cfg_mouse=0;
+ 			save_configuration();
+ 		}
+ 		if (key==SDLK_a) {
+ 			cfg_copypixels = (cfg_copypixels==false);
+ 			save_configuration();
+ 		}
+-		if (key==SDLK_0) { // back
++		if (key==SDLK_p) { // back
+ 			mainmenu_status=0;
+ 			mainmenu_substatus=0;
+ 		}
+@@ -413,7 +414,8 @@
+ 		if (show_fps) scaledglprintf(0.005,0.005,"9 - SHOW FPS: ON         ");
+ 		else scaledglprintf(0.005,0.005,"9 - SHOW FPS: OFF        ");
+ 		glTranslatef(0,-1,0);
+-		if (cfg_mouse) scaledglprintf(0.005,0.005,"m - MOUSE: ON            ");
++		if (cfg_mouse==1) scaledglprintf(0.005,0.005,"m - MOUSE: MODE1         ");
++		else if (cfg_mouse==2) scaledglprintf(0.005,0.005,"m - MOUSE: MODE2         ");
+ 		else scaledglprintf(0.005,0.005,"m - MOUSE: OFF           ");
+ 		glTranslatef(0,-1,0);
+ 		if (cfg_copypixels) scaledglprintf(0.005,0.005,"a - ANTI-FLICKERING: ON  ");
+@@ -555,9 +557,7 @@
+ 	if (v==0) show_fps=true;
+ 	else show_fps=false;
+ 
+-	if (1!=fscanf(fp,"%i",&v)) return;
+-	if (v==0) cfg_mouse=true;
+-	else cfg_mouse=false;
++	if (1!=fscanf(fp,"%i",&cfg_mouse)) return;
+ 
+ 	if (1!=fscanf(fp,"%i",&v)) return;
+ 	if (v==0) cfg_copypixels=true;
+@@ -583,7 +583,7 @@
+ 	fprintf(fp,"%i\n",dbglvl);
+ 	fprintf(fp,"%f\n",default_zoom);
+ 	fprintf(fp,"%i\n",(show_fps ? 0 : 1));
+-	fprintf(fp,"%i\n",(cfg_mouse ? 0 : 1));
++	fprintf(fp,"%i\n",cfg_mouse);
+ 	fprintf(fp,"%i\n",(cfg_copypixels ? 0 : 1));
+ 
+ 	fclose(fp);
+Only in nether-0.53-1292/src/: mainmenu.o
+Only in nether-0.53-1292/src/: main.o
+Only in nether-0.53-1292/src/: maps.o
+Only in nether-0.53-1292/src/: matrix.o
+Only in nether-0.53-1292/src/: menu.o
+Only in nether-0.53-1292/src/: myglutaux.o
+diff -ur -x .svn -x .git -x .bzr -x CVS -x '*~' -x '.#*' nether.old/src/nether.cpp nether-0.53-1292/src/nether.cpp
+--- nether.old/src/nether.cpp	2015-09-21 15:28:36.414521626 +0300
++++ nether-0.53-1292/src/nether.cpp	2015-09-24 14:30:14.804046385 +0300
+@@ -36,7 +36,7 @@
+ extern bool show_fps;
+ extern float default_zoom;
+ extern int SCREEN_X, SCREEN_Y;
+-extern bool cfg_mouse;
++extern int cfg_mouse;
+ extern bool cfg_copypixels;
+ extern int message_timer;
+ extern char message[20];
+diff -ur -x .svn -x .git -x .bzr -x CVS -x '*~' -x '.#*' nether.old/src/nethercycle.cpp nether-0.53-1292/src/nethercycle.cpp
+--- nether.old/src/nethercycle.cpp	2015-09-18 11:18:24.705092914 +0300
++++ nether-0.53-1292/src/nethercycle.cpp	2015-09-24 14:30:14.804046385 +0300
+@@ -37,7 +37,7 @@
+ extern int level;
+ extern int SCREEN_X,SCREEN_Y;
+ extern bool show_radar;
+-extern bool cfg_mouse;
++extern int cfg_mouse;
+ extern int time_diff;
+ 
+ extern FILE *debug_fp;
+Only in nether-0.53-1292/src/: nethercycle.o
+Only in nether-0.53-1292/src/: netherdebug.o
+Only in nether-0.53-1292/src/: nether.o
+Only in nether-0.53-1292/src/: nethersave.o
+Only in nether-0.53-1292/src/: particles.o
+Only in nether-0.53-1292/src/: piece3dobject.o
+Only in nether-0.53-1292/src/: quaternion.o
+Only in nether-0.53-1292/src/: radar.o
+Only in nether-0.53-1292/src/: robot_ai.o
+Only in nether-0.53-1292/src/: robots.o
+Only in nether-0.53-1292/src/: shadow3dobject.o
+Only in nether-0.53-1292/src/: vector.o
